@@ -266,9 +266,12 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
         TTS avec Gemini 2.5 Flash TTS
         """
         try:
+            # Format for TTS - must be clear instruction to read text
+            tts_prompt = f"Read aloud the following text naturally and clearly: {text}"
+
             response = self.client.models.generate_content(
                 model=self.MODEL_TTS,
-                contents=text,
+                contents=tts_prompt,
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
                     speech_config=types.SpeechConfig(
