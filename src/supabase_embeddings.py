@@ -34,7 +34,8 @@ class SupabaseEmbeddingsManager:
 
         # Initialize Gemini client for embeddings
         self.gemini_client = genai.Client(api_key=api_key)
-        self.embedding_model = "models/text-embedding-004"
+        # Use gemini-embedding-001 (3072 dims) to match database embeddings
+        self.embedding_model = "gemini-embedding-001"
 
         # Initialize Supabase client
         self.supabase_url = supabase_url or os.getenv("SUPABASE_URL")
