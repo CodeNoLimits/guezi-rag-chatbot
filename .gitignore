@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# Environment
+config/.env
+.env
+*.env
+
+# Data files (large)
+data/faiss_db/
+data/breslov_chunked.json
+data/breslov_complete.json
+*.index
+*.pkl
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.wav
+test_*.png
+
+# Streamlit
+.streamlit/secrets.toml
