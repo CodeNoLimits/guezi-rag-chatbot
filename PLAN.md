@@ -41,4 +41,4 @@ source venv/bin/activate && streamlit run src/chatbot_v2.py
 
 - [ ] Voice input avec Live API (nécessite WebSocket + pyaudio)
 - [ ] Déploiement Streamlit Cloud
-- [ ] Supabase pour persistance cloud
+- [x] Supabase pour persistance cloud (configuré: wzvmafowkjaapnshafjn)

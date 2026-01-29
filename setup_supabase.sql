@@ -19,20 +19,17 @@ CREATE TABLE IF NOT EXISTS breslov_documents (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 3. Create index for vector similarity search
-CREATE INDEX IF NOT EXISTS breslov_documents_embedding_idx
-ON breslov_documents
-USING ivfflat (embedding vector_cosine_ops)
-WITH (lists = 100);
-
--- 4. Create text search index
+-- 3. Create text search indices
+-- Note: ivfflat index not used because Gemini embeddings are 3072 dimensions
+-- (Supabase free tier limits ivfflat to 2000 dimensions)
+-- Vector search will still work using sequential scan
 CREATE INDEX IF NOT EXISTS breslov_documents_ref_idx
 ON breslov_documents(ref);
 
 CREATE INDEX IF NOT EXISTS breslov_documents_title_idx
 ON breslov_documents(title);
 
--- 5. Create similarity search function
+-- 4. Create similarity search function
 CREATE OR REPLACE FUNCTION match_breslov_documents(
     query_embedding vector(3072),
     match_threshold float DEFAULT 0.5,
@@ -65,7 +62,7 @@ AS $$
     LIMIT match_count;
 $$;
 
--- 6. Create hybrid search function (reference + semantic)
+-- 5. Create hybrid search function (reference + semantic)
 CREATE OR REPLACE FUNCTION hybrid_search_breslov(
     search_ref text,
     query_embedding vector(3072),

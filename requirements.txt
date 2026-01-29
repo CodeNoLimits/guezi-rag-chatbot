@@ -5,9 +5,12 @@
 # Google Gemini AI
 google-genai>=1.0.0
 
-# Vector Database (FAISS)
+# Vector Database (FAISS local)
 faiss-cpu>=1.7.0
 numpy>=1.24.0
+
+# Vector Database (Supabase cloud)
+supabase>=2.0.0
 
 # Sefaria API
 requests>=2.31.0

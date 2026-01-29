@@ -30,10 +30,22 @@ def init_session_state():
         st.session_state.engine = None
 
 
+def get_api_key():
+    """Get API key from Streamlit secrets or environment"""
+    # Try Streamlit Cloud secrets first
+    try:
+        if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
+            return st.secrets['GEMINI_API_KEY']
+    except:
+        pass
+    # Fall back to environment variable
+    return os.getenv("GEMINI_API_KEY")
+
+
 def get_engine():
     """Get or create engine"""
     if st.session_state.engine is None:
-        api_key = os.getenv("GEMINI_API_KEY")
+        api_key = get_api_key()
         if api_key:
             try:
                 st.session_state.engine = GUEZIRagEngineV2(api_key)
@@ -43,7 +55,7 @@ def get_engine():
 
 
 def main():
-    # Load environment
+    # Load environment (for local development)
     load_dotenv("config/.env")
     load_dotenv("../config/.env")
 

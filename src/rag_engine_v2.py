@@ -102,21 +102,61 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
 
     def _build_reference_index(self):
         """Construit un index des références pour recherche directe"""
+        # Number words mapping
+        self.number_words = {
+            'first': '1', 'second': '2', 'third': '3', 'fourth': '4', 'fifth': '5',
+            'sixth': '6', 'seventh': '7', 'eighth': '8', 'ninth': '9', 'tenth': '10',
+            'premier': '1', 'deuxième': '2', 'troisième': '3',  # French
+            'one': '1', 'two': '2', 'three': '3', 'four': '4', 'five': '5',
+        }
+
         self.reference_patterns = {
-            r'likute?i?\s*moharan\s*(\d+)': 'Likutei Moharan {}',
-            r'likute?i?\s*moharan\s*(?:part\s*)?(?:ii|2)\s*(\d+)': 'Likutei Moharan, Part II {}',
+            # Likutei Moharan with numbers
+            r'likute?[iy]?\s*moharan\s*(\d+)': 'Likutei Moharan {}',
+            r'likute?[iy]?\s*moharan\s*(?:part\s*)?(?:ii|2)\s*(\d+)': 'Likutei Moharan, Part II {}',
+            r'lm\s*(\d+)': 'Likutei Moharan {}',
             r'torah\s*(\d+)': 'Likutei Moharan {}',
-            r'sippure?i?\s*maasiy?ot\s*(\d+)': 'Sippurei Maasiyot {}',
+            r'teaching\s*(\d+)': 'Likutei Moharan {}',
+            r'lesson\s*(\d+)': 'Likutei Moharan {}',
+            r'enseignement\s*(\d+)': 'Likutei Moharan {}',  # French
+
+            # Other books
+            r'sippure?[iy]?\s*maasiy?ot\s*(\d+)': 'Sippurei Maasiyot {}',
+            r'tale\s*(\d+)': 'Sippurei Maasiyot {}',
+            r'story\s*(\d+)': 'Sippurei Maasiyot {}',
             r'sichot\s*ha?ran\s*(\d+)': 'Sichot HaRan {}',
-            r'chaye?i?\s*moharan\s*(\d+)': 'Chayei Moharan {}',
-            r'likute?i?\s*tefilot\s*(\d+)': 'Likutei Tefilot, Volume I {}',
+            r'conversation\s*(\d+)': 'Sichot HaRan {}',
+            r'chaye?[iy]?\s*moharan\s*(\d+)': 'Chayei Moharan {}',
+            r'likute?[iy]?\s*tefilot\s*(\d+)': 'Likutei Tefilot, Volume I {}',
+            r'prayer\s*(\d+)': 'Likutei Tefilot, Volume I {}',
             r'tikkun\s*ha?klali': 'Tikkun HaKlali',
+            r'seven\s*beggars': 'Sippurei Maasiyot 13',
+            r'sept\s*mendiants': 'Sippurei Maasiyot 13',  # French
         }
 
     def _extract_reference(self, query: str) -> Optional[str]:
         """Extrait une référence de livre du texte"""
         query_lower = query.lower()
 
+        # First, convert word numbers to digits for common patterns
+        for word, digit in self.number_words.items():
+            # "first teaching", "premier enseignement"
+            query_lower = re.sub(
+                rf'\b{word}\s+(teaching|lesson|torah|enseignement|tale|story|prayer)\b',
+                rf'\1 {digit}',
+                query_lower
+            )
+            # "the first Torah", "first Likutei Moharan"
+            query_lower = re.sub(
+                rf'\b{word}\s+(likutei|likute|sippurei|sichot|chayei)\b',
+                rf'\1 {digit}',
+                query_lower
+            )
+            # Just "first teaching" without book name -> assume Likutei Moharan
+            if re.search(rf'\b{word}\s+(teaching|lesson|enseignement)\b', query.lower()):
+                query_lower = query_lower.replace(f'{word} ', f'teaching {digit} ')
+
+        # Try standard patterns
         for pattern, template in self.reference_patterns.items():
             match = re.search(pattern, query_lower)
             if match:

@@ -109,7 +109,26 @@ class SemanticChunker:
         ref = document.get('ref', '')
         hebrew = document.get('hebrew', '') or ''
         english = document.get('english', '') or ''
-        combined = document.get('combined', '') or f"{hebrew}\n\n{english}"
+
+        # ALWAYS combine Hebrew + English for bilingual search
+        # Include reference for better semantic matching
+        combined_parts = []
+
+        # Add reference/title for searchability
+        combined_parts.append(f"[{title} - {ref}]")
+
+        if english:
+            combined_parts.append(english)
+        if hebrew:
+            combined_parts.append(hebrew)
+
+        # Fallback to original combined if no separate content
+        if len(combined_parts) == 1:
+            original_combined = document.get('combined', '')
+            if original_combined:
+                combined_parts.append(original_combined)
+
+        combined = '\n\n'.join(combined_parts)
 
         # Clean HTML artifacts
         combined = re.sub(r'<[^>]+>', ' ', combined)
