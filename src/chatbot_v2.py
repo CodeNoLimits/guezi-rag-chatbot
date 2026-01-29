@@ -42,13 +42,56 @@ def get_api_key():
     return os.getenv("GEMINI_API_KEY")
 
 
+def get_supabase_config():
+    """Get Supabase config from Streamlit secrets or environment"""
+    config = {}
+    # Try Streamlit Cloud secrets first
+    try:
+        if hasattr(st, 'secrets'):
+            config['url'] = st.secrets.get('SUPABASE_URL', '')
+            config['key'] = st.secrets.get('SUPABASE_KEY', '')
+    except:
+        pass
+    # Fall back to environment variables
+    if not config.get('url'):
+        config['url'] = os.getenv("SUPABASE_URL", "")
+    if not config.get('key'):
+        config['key'] = os.getenv("SUPABASE_KEY", "")
+    return config
+
+
+def is_cloud_environment():
+    """Check if running on Streamlit Cloud"""
+    # Streamlit Cloud sets this environment variable
+    return os.getenv("STREAMLIT_SHARING_MODE") is not None or \
+           os.getenv("STREAMLIT_SERVER_HEADLESS") == "true"
+
+
 def get_engine():
     """Get or create engine"""
     if st.session_state.engine is None:
         api_key = get_api_key()
         if api_key:
             try:
-                st.session_state.engine = GUEZIRagEngineV2(api_key)
+                # Check if we should use Supabase (cloud) or FAISS (local)
+                supabase_config = get_supabase_config()
+                use_supabase = bool(supabase_config.get('url') and supabase_config.get('key'))
+
+                if use_supabase:
+                    # Use Supabase for cloud deployment
+                    from supabase_embeddings import SupabaseEmbeddingsManager
+                    embeddings_manager = SupabaseEmbeddingsManager(
+                        api_key=api_key,
+                        supabase_url=supabase_config['url'],
+                        supabase_key=supabase_config['key']
+                    )
+                    st.session_state.engine = GUEZIRagEngineV2(
+                        api_key,
+                        embeddings_manager=embeddings_manager
+                    )
+                else:
+                    # Use local FAISS
+                    st.session_state.engine = GUEZIRagEngineV2(api_key)
             except Exception as e:
                 st.error(f"Engine error: {e}")
     return st.session_state.engine
