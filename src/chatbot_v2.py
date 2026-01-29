@@ -474,6 +474,14 @@ def main():
                             | Relevance: {src.get('relevance', 0):.0%}
                         </div>
                         """, unsafe_allow_html=True)
+                        # Show text preview
+                        if src.get('text_preview'):
+                            st.caption(f"Preview: {src.get('text_preview')[:200]}...")
+
+            # Debug: show context passed to LLM
+            if response.get("debug_context"):
+                with st.expander("🔍 Debug: Context sent to LLM"):
+                    st.text(response.get("debug_context"))
 
         # Save to history
         st.session_state.messages.append({

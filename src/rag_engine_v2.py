@@ -301,12 +301,14 @@ IMPORTANT: These passages contain the answer to the user's question!
                         'title': s['metadata'].get('title', ''),
                         'ref': s['metadata'].get('ref', ''),
                         'relevance': s.get('relevance_score', 0),
-                        'match_type': s.get('match_type', 'semantic')
+                        'match_type': s.get('match_type', 'semantic'),
+                        'text_preview': s.get('text', '')[:300]  # Add text preview for debug
                     }
                     for s in sources
                 ],
                 'language': language,
-                'context_found': bool(context)
+                'context_found': bool(context),
+                'debug_context': context[:2000] if context else None  # Add context for debug
             }
 
         except Exception as e:
