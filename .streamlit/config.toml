@@ -12,3 +12,4 @@ enableCORS = false
 
 [browser]
 gatherUsageStats = false
+# Force redeploy Thu Jan 29 16:30:23 IST 2026
