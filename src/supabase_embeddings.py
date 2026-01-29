@@ -230,13 +230,14 @@ class SupabaseEmbeddingsManager:
             ).execute()
 
             return {
-                "total_documents": result.count or 0,
+                "count": result.count or 0,
                 "storage": "supabase",
                 "table": self.table_name,
                 "url": self.supabase_url
             }
         except Exception as e:
             return {
+                "count": 0,
                 "error": str(e),
                 "storage": "supabase"
             }
