@@ -236,7 +236,7 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
         self,
         user_message: str,
         language: str = 'en',
-        temperature: float = 0.7
+        temperature: float = 0.3  # Lower temperature for more precise answers
     ) -> Dict:
         """Génère une réponse RAG"""
 
@@ -275,7 +275,13 @@ IMPORTANT: These passages contain the answer to the user's question!
                 history_text += f"{role}: {msg['content'][:300]}\n"
             prompt_parts.append(history_text)
 
-        prompt_parts.append(f"\n\nUser's question: {user_message}\n\nGUEZI:")
+        prompt_parts.append(f"""
+
+FINAL REMINDER: The passages above ARE your knowledge base. If they contain Hebrew text about the topic, READ IT and answer based on it. The word מֶעדְוֶועדִיוְוקֶע means "Medvedevka".
+
+User's question: {user_message}
+
+GUEZI (answer using the passages above):""")
         full_prompt = "\n".join(prompt_parts)
 
         try:

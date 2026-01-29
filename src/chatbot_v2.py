@@ -267,7 +267,7 @@ def main():
         <h1>✡️ GUEZI גואזי</h1>
         <p style="color: #a0a0b0;">AI Assistant for Rabbi Nachman of Breslov</p>
         <p class="quote">אין שום יאוש בעולם כלל<br>There is no despair in the world at all!</p>
-        <p style="color: #666; font-size: 10px;">v2.1-hebrew</p>
+        <p style="color: #666; font-size: 10px;">v2.2-hebrew-fix</p>
     </div>
     """, unsafe_allow_html=True)
 
