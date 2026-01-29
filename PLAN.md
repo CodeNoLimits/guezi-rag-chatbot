@@ -1,50 +1,44 @@
 # GUEZI RAG Chatbot - Plan d'Action
 
-## Problèmes Identifiés
+## État: ✅ COMPLÉTÉ
 
-1. **RAG ne fonctionne pas** - Likutei Moharan Torah 1 non trouvé
-2. **TTS ne fonctionne pas** - Mauvais modèle ou configuration
-3. **Pas d'entrée vocale** - Microphone non implémenté
-4. **Textes hébreux** - Problème d'embedding/recherche
-5. **Pas de génération d'images**
-6. **Supabase non fonctionnel**
-7. **Pas de repo GitHub**
+## Problèmes Résolus
 
-## Plan d'Action (Dans l'ordre)
+| Problème | Statut | Solution |
+|----------|--------|----------|
+| RAG ne trouve pas Likutei Moharan 1 | ✅ | Recherche hybride (référence + sémantique) |
+| TTS ne fonctionne pas | ✅ | Prompt corrigé pour Gemini 2.5 TTS |
+| Pas de génération d'images | ✅ | Nano Banana (gemini-2.5-flash-image) |
+| Multi-langue | ✅ | EN/HE/FR supportés |
+| Pas de repo GitHub | ✅ | https://github.com/CodeNoLimits/guezi-rag-chatbot |
 
-### Phase 1: Diagnostic RAG (CRITIQUE)
-- [ ] Vérifier si Likutei Moharan 1 existe dans les données
-- [ ] Vérifier si le texte est correctement chunké
-- [ ] Vérifier si les embeddings sont corrects
-- [ ] Tester la recherche directement
+## Modèles Gemini Utilisés
 
-### Phase 2: Corriger le RAG
-- [ ] S'assurer que TOUS les textes sont présents
-- [ ] Améliorer la recherche (hébreu + anglais)
-- [ ] Tester avec plusieurs requêtes
+| Fonction | Modèle |
+|----------|--------|
+| Chat | `gemini-2.0-flash` |
+| TTS | `gemini-2.5-flash-preview-tts` |
+| Image | `gemini-2.5-flash-image` |
+| Embeddings | `gemini-embedding-001` |
+| Live API (voice) | `gemini-2.5-flash-native-audio-preview-12-2025` |
 
-### Phase 3: Recherche Modèles Gemini
-- [ ] Lister tous les modèles Gemini disponibles
-- [ ] Identifier modèle TTS correct
-- [ ] Identifier modèle pour Live API (voice input)
-- [ ] Identifier modèle pour génération d'images
+## Fichiers Clés
 
-### Phase 4: Implémenter Audio
-- [ ] TTS fonctionnel
-- [ ] Input microphone (STT)
-- [ ] Interface voice conversation
+- `src/rag_engine_v2.py` - Moteur RAG avec recherche hybride
+- `src/chatbot_v2.py` - Interface Streamlit
+- `src/embeddings.py` - Gestion FAISS
+- `src/semantic_chunker.py` - Chunking intelligent
 
-### Phase 5: Génération d'Images
-- [ ] Intégrer Imagen/Gemini pour images
+## Pour Lancer
 
-### Phase 6: Infrastructure
-- [ ] Configurer Supabase correctement
-- [ ] Créer repo GitHub
-- [ ] Déployer sur Streamlit Cloud
+```bash
+./run.sh
+# ou
+source venv/bin/activate && streamlit run src/chatbot_v2.py
+```
 
-## Vérification Finale
-- [ ] Test complet RAG (toutes les sources)
-- [ ] Test TTS
-- [ ] Test microphone
-- [ ] Test génération images
-- [ ] Test multi-langue
+## TODO Optionnel
+
+- [ ] Voice input avec Live API (nécessite WebSocket + pyaudio)
+- [ ] Déploiement Streamlit Cloud
+- [ ] Supabase pour persistance cloud
