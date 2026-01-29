@@ -303,15 +303,19 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
 
     def text_to_speech(self, text: str, voice: str = "Kore") -> Optional[bytes]:
         """
-        TTS avec Gemini 2.5 Flash TTS
+        TTS with Gemini 2.5 Flash TTS
+        Returns WAV audio bytes
         """
         try:
-            # Format for TTS - must be clear instruction to read text
-            tts_prompt = f"Read aloud the following text naturally and clearly: {text}"
+            # Clean and prepare text for TTS
+            clean_text = text.replace('\n', ' ').strip()
+            if not clean_text:
+                return None
 
+            # Create TTS request with proper configuration
             response = self.client.models.generate_content(
                 model=self.MODEL_TTS,
-                contents=tts_prompt,
+                contents=f"Please read this text aloud: {clean_text}",
                 config=types.GenerateContentConfig(
                     response_modalities=["AUDIO"],
                     speech_config=types.SpeechConfig(
@@ -324,16 +328,60 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
                 )
             )
 
-            # Extraire l'audio
-            if response.candidates and response.candidates[0].content.parts:
-                for part in response.candidates[0].content.parts:
-                    if hasattr(part, 'inline_data') and part.inline_data:
-                        return part.inline_data.data
+            # Extract audio from response
+            if response.candidates:
+                for candidate in response.candidates:
+                    if candidate.content and candidate.content.parts:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'inline_data') and part.inline_data:
+                                audio_data = part.inline_data.data
+                                if audio_data:
+                                    # Convert raw PCM to WAV format
+                                    return self._pcm_to_wav(audio_data, sample_rate=24000)
 
+            print("TTS: No audio data in response")
             return None
+
         except Exception as e:
             print(f"TTS error: {e}")
+            import traceback
+            traceback.print_exc()
             return None
+
+    def _pcm_to_wav(self, pcm_data: bytes, sample_rate: int = 24000, channels: int = 1, bits_per_sample: int = 16) -> bytes:
+        """Convert raw PCM audio to WAV format"""
+        import struct
+        import io
+
+        # WAV file parameters
+        byte_rate = sample_rate * channels * bits_per_sample // 8
+        block_align = channels * bits_per_sample // 8
+        data_size = len(pcm_data)
+
+        # Create WAV header
+        wav_buffer = io.BytesIO()
+
+        # RIFF header
+        wav_buffer.write(b'RIFF')
+        wav_buffer.write(struct.pack('<I', 36 + data_size))  # File size - 8
+        wav_buffer.write(b'WAVE')
+
+        # fmt chunk
+        wav_buffer.write(b'fmt ')
+        wav_buffer.write(struct.pack('<I', 16))  # Chunk size
+        wav_buffer.write(struct.pack('<H', 1))   # Audio format (PCM)
+        wav_buffer.write(struct.pack('<H', channels))
+        wav_buffer.write(struct.pack('<I', sample_rate))
+        wav_buffer.write(struct.pack('<I', byte_rate))
+        wav_buffer.write(struct.pack('<H', block_align))
+        wav_buffer.write(struct.pack('<H', bits_per_sample))
+
+        # data chunk
+        wav_buffer.write(b'data')
+        wav_buffer.write(struct.pack('<I', data_size))
+        wav_buffer.write(pcm_data)
+
+        return wav_buffer.getvalue()
 
     def generate_image(self, prompt: str) -> Optional[bytes]:
         """
