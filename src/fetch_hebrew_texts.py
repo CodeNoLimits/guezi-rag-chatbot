@@ -19,25 +19,32 @@ class HebrewTextFetcher:
 
     BASE_URL = "https://www.sefaria.org/api"
 
-    # Hebrew-only Breslov texts
-    HEBREW_ONLY_TEXTS = [
-        # Likutei Halachot - Rabbi Natan's halachic work based on Likutei Moharan
-        "Likutey_Halakhot",
-        "Likutey_Halakhot,_Orach_Chaim",
-        "Likutey_Halakhot,_Yoreh_Deah",
-        "Likutey_Halakhot,_Even_HaEzer",
-        "Likutey_Halakhot,_Choshen_Mishpat",
-
-        # Other Hebrew texts
-        "Alim_LeTerufah",  # Letters of Rabbi Nachman
-        "Parparaot_LeChokhmah",  # Commentary on Likutei Moharan
+    # Breslov texts available on Sefaria
+    BRESLOV_TEXTS = [
+        # Main Breslov corpus
+        "Likutei_Moharan",
+        "Likutei_Moharan,_Part_II",
+        "Sippurei_Maasiyot",
+        "Sippurei_Maasiyot,_Additional_Tales",
+        "Sichot_HaRan",
+        "Shivchei_HaRan",
+        "Chayei_Moharan",
+        "Likutei_Tefilot,_Volume_I",
+        "Likutei_Tefilot,_Volume_II",
+        "Tikkun_HaKlali",
     ]
 
-    # Additional Breslov-related texts
+    # Additional sections
     ADDITIONAL_TEXTS = [
-        "Otzar_HaYirah",  # Treasury of Fear/Awe
-        "Avanehah_Barzel",  # Teachings by R' Natan
+        "Likutei_Moharan,_Go_See",
+        "Likutei_Moharan,_A_Pleasant_Song",
+        "Likutei_Moharan,_Additions_from_Manuscript",
+        "Sippurei_Maasiyot,_Talks_Following_the_Story_Tales",
     ]
+
+    # Note: Likutei Halachot is not available on Sefaria
+    # It would need to be sourced from another location
+    HEBREW_ONLY_TEXTS = BRESLOV_TEXTS
 
     def __init__(self):
         self.session = requests.Session()
