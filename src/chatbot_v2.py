@@ -2,13 +2,14 @@
 GUEZI Chatbot V2 - Complete Streamlit Interface
 - Multi-language (EN/HE/FR)
 - Text-to-Speech with Gemini
-- Voice Input (via browser Web Speech API)
+- Voice Input with Gemini Audio Transcription
 - Image Generation
 """
 
 import os
 import sys
 import base64
+import tempfile
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -17,8 +18,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from rag_engine_v2 import GUEZIRagEngineV2
 from embeddings import EmbeddingsManager
 
+# Try to import audio recorder
+try:
+    from audio_recorder_streamlit import audio_recorder
+    AUDIO_RECORDER_AVAILABLE = True
+except ImportError:
+    AUDIO_RECORDER_AVAILABLE = False
 
-# Voice Input JavaScript Component
+
+# Voice Input JavaScript Component with Hebrew/Jewish term corrections
 VOICE_INPUT_HTML = """
 <div id="voice-container" style="
     background: linear-gradient(135deg, #1e1e3f 0%, #252550 100%);
@@ -51,6 +59,89 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 let recognition = null;
 let isListening = false;
 
+// Dictionary of common misrecognitions -> correct Hebrew/Jewish terms
+const hebrewCorrections = {
+    // Rabbi Nachman variations
+    'la vie normale': 'Rabbi Nachman',
+    'rabbi nachman': 'Rabbi Nachman',
+    'rabi nachman': 'Rabbi Nachman',
+    'la bienormal': 'Rabbi Nachman',
+    'la vie normal': 'Rabbi Nachman',
+    'rabbin nachman': 'Rabbi Nachman',
+    'rabina oman': 'Rabbi Nachman',
+    'lavie normale': 'Rabbi Nachman',
+    // Breslov variations
+    'breslov': 'Breslov',
+    'breslev': 'Breslov',
+    'brésil off': 'Breslov',
+    'bresil of': 'Breslov',
+    'prêt slow': 'Breslov',
+    // Medvedevka variations
+    'mettre vfk': 'Medvedevka',
+    'mettre vf k': 'Medvedevka',
+    'maître vfk': 'Medvedevka',
+    'met vfk': 'Medvedevka',
+    'mettre fk': 'Medvedevka',
+    'mais de vfk': 'Medvedevka',
+    'met de vfk': 'Medvedevka',
+    'médical': 'Medvedevka',
+    // Uman variations
+    'où man': 'Uman',
+    'ou man': 'Uman',
+    'human': 'Uman',
+    // Likutei Moharan
+    'lire courte et morale': 'Likutei Moharan',
+    'les couteaux maurane': 'Likutei Moharan',
+    'liker des moeurs': 'Likutei Moharan',
+    'les couteaux morane': 'Likutei Moharan',
+    'licou t moranne': 'Likutei Moharan',
+    'li couper moranne': 'Likutei Moharan',
+    // Hitbodedut
+    'it bout des doutes': 'hitbodedut',
+    'hit bout des doutes': 'hitbodedut',
+    'hibou des doutes': 'hitbodedut',
+    'it beau des doutes': 'hitbodedut',
+    // Tikkun
+    'tique oune': 'Tikkun',
+    'tic oune': 'Tikkun',
+    'ticket oune': 'Tikkun',
+    'ticoune': 'Tikkun',
+    'tick oune': 'Tikkun',
+    // Torah
+    'torah': 'Torah',
+    'tora': 'Torah',
+    'thorax': 'Torah',
+    // Tzaddik
+    'tsadik': 'Tzaddik',
+    'sa digue': 'Tzaddik',
+    'sa dick': 'Tzaddik',
+    'zadik': 'Tzaddik',
+    // Nathan
+    'nathan': 'Nathan',
+    'natan': 'Nathan',
+    // Other common terms
+    'chabbat': 'Shabbat',
+    'shabbat': 'Shabbat',
+    'téfiline': 'Tefillin',
+    'tafilline': 'Tefillin',
+    'halakha': 'Halacha',
+    'hasidique': 'Hassidic',
+    'hassidique': 'Hassidic',
+    'kabbale': 'Kabbalah',
+    'kabbalah': 'Kabbalah'
+};
+
+function correctHebrewTerms(text) {
+    let corrected = text.toLowerCase();
+    for (const [wrong, right] of Object.entries(hebrewCorrections)) {
+        const regex = new RegExp(wrong.toLowerCase(), 'gi');
+        corrected = corrected.replace(regex, right);
+    }
+    // Capitalize first letter of sentences
+    corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
+    return corrected;
+}
+
 if (SpeechRecognition) {
     recognition = new SpeechRecognition();
     recognition.continuous = false;
@@ -65,7 +156,9 @@ if (SpeechRecognition) {
     };
 
     recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
+        let transcript = event.results[0][0].transcript;
+        // Apply Hebrew/Jewish term corrections
+        transcript = correctHebrewTerms(transcript);
         document.getElementById('voice-status').textContent = 'Heard: ' + transcript;
 
         // Send to Streamlit via URL parameter (workaround for component communication)
@@ -121,6 +214,8 @@ def init_session_state():
         st.session_state.enable_tts = False
     if 'engine' not in st.session_state:
         st.session_state.engine = None
+    if 'voice_transcript' not in st.session_state:
+        st.session_state.voice_transcript = None
 
 
 def get_api_key():
@@ -158,6 +253,62 @@ def is_cloud_environment():
     # Streamlit Cloud sets this environment variable
     return os.getenv("STREAMLIT_SHARING_MODE") is not None or \
            os.getenv("STREAMLIT_SERVER_HEADLESS") == "true"
+
+
+def transcribe_audio_with_gemini(audio_bytes, api_key):
+    """Transcribe audio using Gemini API - superior to Web Speech API for Hebrew/Jewish terms"""
+    try:
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(api_key=api_key)
+
+        # Save audio to temp file
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+            f.write(audio_bytes)
+            temp_path = f.name
+
+        try:
+            # Upload audio file
+            audio_file = client.files.upload(file=temp_path)
+
+            # Transcribe with Gemini - explicitly ask for accurate transcription of Hebrew/Jewish terms
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=[
+                    types.Part.from_uri(
+                        file_uri=audio_file.uri,
+                        mime_type="audio/wav"
+                    ),
+                    """Transcribe this audio EXACTLY. This is a question about Rabbi Nachman of Breslov and Jewish/Hebrew teachings.
+
+Pay special attention to correctly transcribe these terms if you hear them:
+- Rabbi Nachman, Rebbe Nachman (רבי נחמן)
+- Breslov, Breslev (ברסלב)
+- Likutei Moharan (ליקוטי מוהר"ן)
+- Medvedevka, Medzhibozh
+- Uman (אומן)
+- Hitbodedut (התבודדות)
+- Tikkun, Tikun (תיקון)
+- Torah (תורה)
+- Tzaddik (צדיק)
+- Nathan, Natan (נתן)
+- Shabbat, Shabbes (שבת)
+- Tefillin (תפילין)
+- Kabbalah (קבלה)
+- Halacha (הלכה)
+
+Return ONLY the transcription, nothing else."""
+                ]
+            )
+
+            return response.text.strip()
+        finally:
+            # Clean up temp file
+            os.unlink(temp_path)
+
+    except Exception as e:
+        return f"Error transcribing: {str(e)}"
 
 
 def get_engine():
@@ -267,7 +418,7 @@ def main():
         <h1>✡️ GUEZI גואזי</h1>
         <p style="color: #a0a0b0;">AI Assistant for Rabbi Nachman of Breslov</p>
         <p class="quote">אין שום יאוש בעולם כלל<br>There is no despair in the world at all!</p>
-        <p style="color: #666; font-size: 10px;">v2.2-hebrew-fix</p>
+        <p style="color: #666; font-size: 10px;">v2.3-gemini-voice</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -308,11 +459,34 @@ def main():
                 index=voice_options.index(st.session_state.get('tts_voice', 'Kore'))
             )
 
-        # Voice input
-        st.markdown("#### 🎤 Voice Input")
-        lang_codes = {'en': 'en-US', 'he': 'he-IL', 'fr': 'fr-FR'}
-        voice_html = VOICE_INPUT_HTML.replace('%LANG%', lang_codes.get(st.session_state.language, 'en-US'))
-        st.components.v1.html(voice_html, height=120)
+        # Voice input with Gemini transcription
+        st.markdown("#### 🎤 Voice Input (Gemini)")
+        if AUDIO_RECORDER_AVAILABLE:
+            audio_bytes = audio_recorder(
+                text="",
+                recording_color="#ef4444",
+                neutral_color="#6366f1",
+                icon_name="microphone",
+                icon_size="2x",
+                pause_threshold=2.0,
+                sample_rate=16000
+            )
+            if audio_bytes:
+                api_key = get_api_key()
+                if api_key:
+                    with st.spinner("🎧 Gemini is transcribing..."):
+                        transcript = transcribe_audio_with_gemini(audio_bytes, api_key)
+                        if transcript and not transcript.startswith("Error"):
+                            st.success(f"Heard: {transcript}")
+                            # Store in session state for processing
+                            st.session_state.voice_transcript = transcript
+                        else:
+                            st.error(f"Transcription failed: {transcript}")
+        else:
+            # Fallback to Web Speech API
+            lang_codes = {'en': 'en-US', 'he': 'he-IL', 'fr': 'fr-FR'}
+            voice_html = VOICE_INPUT_HTML.replace('%LANG%', lang_codes.get(st.session_state.language, 'en-US'))
+            st.components.v1.html(voice_html, height=120)
 
         st.markdown("---")
 
@@ -340,7 +514,7 @@ def main():
             st.markdown("#### 📊 Stats")
             stats = engine.get_stats()
             st.metric("Documents", stats['embeddings'].get('count', 0))
-            st.caption("v2.2-hebrew-fix")
+            st.caption("v2.3-gemini-voice")
 
         # Clear
         if st.button("🗑️ Clear Chat", use_container_width=True):
@@ -413,14 +587,23 @@ def main():
                         </div>
                         """, unsafe_allow_html=True)
 
-    # Check for voice input from URL parameters
-    voice_input = st.query_params.get("voice_input", None)
-    if voice_input:
-        # Clear the parameter to avoid reprocessing
-        st.query_params.clear()
-        prompt = voice_input
-    else:
-        # Chat input
+    # Check for voice input from Gemini transcription (priority) or URL parameters (fallback)
+    prompt = None
+
+    # 1. Check Gemini voice transcript first
+    if st.session_state.voice_transcript:
+        prompt = st.session_state.voice_transcript
+        st.session_state.voice_transcript = None  # Clear after use
+
+    # 2. Check URL parameters (fallback for Web Speech API)
+    if not prompt:
+        voice_input = st.query_params.get("voice_input", None)
+        if voice_input:
+            st.query_params.clear()
+            prompt = voice_input
+
+    # 3. Regular chat input
+    if not prompt:
         prompt = st.chat_input(
             {
                 'en': "Ask about Rabbi Nachman's teachings...",

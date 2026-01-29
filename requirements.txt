@@ -17,6 +17,7 @@ requests>=2.31.0
 
 # Web Interface
 streamlit>=1.30.0
+audio-recorder-streamlit>=0.0.8
 
 # Utilities
 python-dotenv>=1.0.0
