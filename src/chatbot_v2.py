@@ -340,6 +340,7 @@ def main():
             st.markdown("#### 📊 Stats")
             stats = engine.get_stats()
             st.metric("Documents", stats['embeddings'].get('count', 0))
+            st.caption("v2.2-hebrew-fix")
 
         # Clear
         if st.button("🗑️ Clear Chat", use_container_width=True):
