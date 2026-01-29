@@ -252,7 +252,18 @@ Remember: "There is no despair in the world at all!" (אין שום יאוש ב�
         prompt_parts.append(f"\nIMPORTANT: {lang_config['instruction']}")
 
         if context:
-            prompt_parts.append(f"\n\nRetrieved passages (USE ONLY THESE):\n{context}")
+            prompt_parts.append(f"""
+
+=== RETRIEVED PASSAGES (YOU MUST USE THESE TO ANSWER) ===
+IMPORTANT: These passages contain the answer to the user's question!
+- Many are in HEBREW (עברית) - READ and TRANSLATE them to find the answer
+- Look for names, places, dates mentioned in Hebrew script
+- If you see Hebrew text, extract the relevant information from it
+- DO NOT say "I don't have information" - the answer IS in these passages!
+
+{context}
+
+=== END OF PASSAGES ===""")
         else:
             prompt_parts.append("\n\nNo relevant passages found. Inform the user.")
 
