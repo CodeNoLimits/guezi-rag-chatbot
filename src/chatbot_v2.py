@@ -278,7 +278,7 @@ def transcribe_audio_with_gemini(audio_bytes, api_key):
                 contents=[
                     types.Part.from_uri(
                         file_uri=audio_file.uri,
-                        mime_type="audio/wav"
+                        mime_type="audio/x-wav"
                     ),
                     """Transcribe this audio EXACTLY. This is a question about Rabbi Nachman of Breslov and Jewish/Hebrew teachings.
 
